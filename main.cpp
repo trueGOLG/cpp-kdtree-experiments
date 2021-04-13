@@ -78,94 +78,39 @@ std::vector<kdtree::vector_t> referenceForSearch;
 // double rangeSet[] = { 6, 7, 8, 9 };
 int qualityThreshold = 10;
 double raduisSet[] = { 8, 9, 10, 11, 12, 13, 14 };
-double rangeSet[] = { 1, 2, 3, 4, 5 };
+double rangeSet[] = { 1, 2, 3, 4, 15, 16 };
 
 std::vector<std::string> recs;
 
 std::vector<kdtree::vector_t> fillTestSet(std::string fileName);
 vector<vector<double>> initDataVector_v1(int timeRange, std::string fileName);
-//void openFileForSetOfGames(int timeRange = 75)
-//{
-//	int frame = 0;
-//	//int howManyFramesinTree = 0;
-//	// =================== Open data set and build tree
-//	if (dataSetFile.is_open())
-//	{
-//		std::cout << "data set file opened" << endl;
-//		kdtree::vector_t hPoint;
-//		kdtree::vector_t framePoint;
-//		hPoint.reserve(Dim);
-//		framePoint.reserve(Dim + 1);
-//		// Scan data set file and put into kd tree
-//		// 105000 = 70min
-//		std::string record;
-//		while (std::getline(dataSetFile, record))
-//		{
-//			frame++;
-//			if (frame % timeRange == 0)
-//			{
-//				std::istringstream currentRecord(record);
-//				framePoint.push_back(frame);
-//				for (auto i = 0; i < Dim; ++i) {
-//					// if (i != 0 && i != 1)
-//					// {
-//					double tempNumber = 0;
-//					currentRecord >> tempNumber;
-//					hPoint.push_back(tempNumber);
-//					framePoint.push_back(tempNumber);
-//					// }
-//				}
-//				try {
-//					// insert time
-//					// auto startedInsert = std::chrono::high_resolution_clock::now();
-//					kd_tree.insert(hPoint, FTagRegionInfo(framePoint));
-//					// auto doneInsert = std::chrono::high_resolution_clock::now();
-//					// auto elapsedTimeForInsert = std::chrono::duration_cast<std::chrono::microseconds>(doneInsert - startedInsert).count();
-//					// std::cout << "Insert time: " << elapsedTimeForInsert << "ms" << endl;
-//					stepcounter++;
-//					recordsCollection.push_back(hPoint);
-//					// howManyFramesinTree++;
-//					/*if (stepcounter % 5000 == 0) {
-//						processing = "processing tree " + std::to_string(stepcounter) + " of " + std::to_string(countOfLines);
-//						std::cout << processing << endl;
-//					}*/
-//				}
-//				catch (kdtree::KeyDuplicateException* e) {} // KeyDuplicateException skip adding to tree
-//				hPoint.clear();
-//				framePoint.clear();
-//			}
-//		}
-//	}
-//	dataSetFile.close();
-//}
+
 
 int main()
 {
-	// auto dataSetFileName = "G1234.txt"; //"stats_training_set.txt";
-	auto dataSetFileName = "d:\\Proccessed Soccer Recordings\\no actions\\Game1-2-3-4\\Game1-2-3-4.txt";
+	bool radius_mode = false;
+	auto dataSetFileName = "d:\\Proccessed Soccer Recordings\\no actions\\Game2-3-4-5\\Game2-3-4-5.txt";
 	// auto testSetName = "G1.txt"; //"stats_test_set.txt";
-	auto testSetName = "d:\\Proccessed Soccer Recordings\\no actions\\Game5\\game5.txt"; //"stats_test_set.txt";
+	auto testSetName = "d:\\Proccessed Soccer Recordings\\no actions\\Game1\\game1.txt"; //"stats_test_set.txt";
 	timeTable.open("time-table.txt");
 	dataSetFile.open(dataSetFileName, ios::in);
 	const int frameRate = 25;
 	const bool include_ball = true;
 	// referenceForSearch = initDataVector_v1(frameRate, testSetName);
-	referenceForSearch = initDataVector(frameRate, testSetName, 46, include_ball);
-
-	auto startedBuilding = std::chrono::high_resolution_clock::now(); // TODO: Implement not so clumsy timer
-
-	// openFileForSetOfGames(frameRate);
-	auto kd_tree = GetKDtree(frameRate, dataSetFileName, include_ball);
+	referenceForSearch = initDataVector(frameRate, testSetName, Dim, include_ball);
 	
-	auto doneBuilding = std::chrono::high_resolution_clock::now();
-	auto elapsedTimeForBuild = std::chrono::duration_cast<std::chrono::milliseconds>(doneBuilding - startedBuilding).count();
-
-	std::cout << "Build (+Parsing) time: " << elapsedTimeForBuild << "ms" << endl;
+	// auto kd_tree = GetKDtree(frameRate, dataSetFileName, include_ball);
+	auto centroids = getCentroids(dataSetFileName, frameRate, Dim);
+	auto kd_tree = GetKDtree_with_HA(centroids, frameRate, Dim, dataSetFileName, include_ball);	
+	HungarianAlgorithm HungAlg;
+	
 	std::cout << "There are " << stepcounter << " elements added into structure" << endl;
 	std::vector<pair<float, float>> rangeSuccess;
 	rangeSuccess.reserve(sizeof rangeSet / sizeof * rangeSet);
 
-	for (auto radius = 0; radius < sizeof(raduisSet) / sizeof(*raduisSet); ++radius)
+	for (auto radius = 0;
+		radius < (radius_mode ? sizeof(raduisSet) / sizeof*raduisSet : 1);
+		++radius)
 	{
 		for (auto r2 = 0; r2 < sizeof(rangeSet) / sizeof(*rangeSet); ++r2)
 		{
@@ -182,9 +127,16 @@ int main()
 
 			for (auto i = 0; i < referenceForSearch.size(); ++i) {
 				// auto refEx = referenceForSearch[i];
+				pair<vector<double>, vector<double>> query;
 				// auto query = getTestQueryWithGradient(referenceForSearch[i]);
-				auto query = getTestQueryAroundBall(referenceForSearch[i], raduisSet[radius], rangeSet[r2]);
-				// auto query = getTestQuery(referenceForSearch[i], rangeSet[r2]);
+				if (radius_mode)
+				{
+					query = getTestQueryAroundBall(referenceForSearch[i], raduisSet[radius], rangeSet[r2]);
+				} else
+				{
+					// query = getTestQuery(referenceForSearch[i], rangeSet[r2]);
+					query = getTestQuery_with_centroids(referenceForSearch[i], centroids, HungAlg, rangeSet[r2]);
+				}
 
 				auto lowerKeys = query.first;
 				auto upperKeys = query.second;
@@ -266,14 +218,13 @@ int main()
 			}
 			if (rescounter > 0)
 			{
-				// auto radiusString = std::to_string((int)raduisSet[radius]);
 				auto rangeString = std::to_string((int)rangeSet[r2]);
 				timeTable << "_Range_" + rangeString
-					// + "_Radius_" + radiusString
+					+ (radius_mode ? "_Radius_" + std::to_string((int)raduisSet[radius]) : "")
 					<< " " << rescounter * 100.0 / referenceForSearch.size() << endl;
 				// ========================================================================================================================
 				std::cout << "Range = " + rangeString +
-					// "; Radius = " + radiusString +
+					(radius_mode ? "; Radius = " + std::to_string((int)raduisSet[radius]) : "") +
 					" " << referenceForSearch.size() << " queries with " << rescounter * 100.0 / referenceForSearch.size() << "% success. "
 					<< "With " << rescounter << " results: " << std::endl;
 			}
@@ -424,5 +375,3 @@ std::vector<kdtree::vector_t> initDataVector_v1(int timeRange = 75, std::string 
 	recordFile.close();
 	return result_vector;
 }
-
-

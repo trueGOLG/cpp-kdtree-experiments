@@ -7,9 +7,35 @@
 
 #include "HA_SupportTools.h"
 
+class TaskTimer
+{
+private:
+	std::chrono::time_point<std::chrono::steady_clock> start, end;
+	std::chrono::duration<float> duration;
+	const char* task_name;
+public:
+	~TaskTimer()
+	{
+		end = std::chrono::high_resolution_clock::now();
+		duration = end - start;
+		auto min = std::chrono::duration_cast<std::chrono::minutes>(end - start).count();
+		auto sec = std::chrono::duration_cast<std::chrono::seconds>(end - start).count();
+		auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+		std::cout << task_name << " took " <<
+			(min == 0 ? "" : (std::to_string(min) + " min: ")) << sec << "s : " << ms << "ms"
+			<< "\n";
+	}
+
+	TaskTimer(const char* taskname) : task_name(taskname)
+	{
+		start = std::chrono::high_resolution_clock::now();
+	}
+};
+
 static std::vector<kdtree::vector_t> initDataVector(int timeRange = 75, std::string fileName = "", int Dim = 46, bool include_Ball = true)
 {
-	int frame = 0;
+	TaskTimer timer("initDataVector()...");
+	int frame = 0;	
 	std::vector<kdtree::vector_t> result_vector;
 	ifstream recordFile;
 	recordFile.open(fileName);
@@ -94,9 +120,18 @@ static std::vector<kdtree::vector_t> initDataVectorWithCentroids(vector<double> 
 
 static vector<double> getCentroids(std::string filename, int frameRate, int Dim)
 {
+	TaskTimer timer("generation centroids");
 	auto dataSet = initDataVector(frameRate, filename, Dim, false);
 	vector<double> result(dataSet[0].size());
-
+	/*
+	for (int i = 0; i < dataSet.size(); ++i)
+	{
+		for (int j = 0; j < result.size(); ++j)
+		{
+			result[j] += dataSet[i][j];
+		}
+	}
+	*/
 	for (int i = 0; i < dataSet.size(); ++i)
 	{
 		for (int j = 0; j < result.size(); ++j)
@@ -183,7 +218,8 @@ const double minR = -30000;
 
 static std::shared_ptr<KDTree> GetKDtree_with_HA(vector<double> centroids, int timeRange = 75, int Dim = 46, std::string file_name = "", bool include_Ball = true)
 {
-	std::shared_ptr<KDTree> kd_tree = std::make_shared<KDTree>(Dim - 2);
+	TaskTimer timer("GetKDtree_with_HA()...");
+	std::shared_ptr<KDTree> kd_tree = std::make_shared<KDTree>(Dim);
 	ifstream dataSetFile;
 	dataSetFile.open(file_name);
 	int frame = 0;
@@ -191,7 +227,7 @@ static std::shared_ptr<KDTree> GetKDtree_with_HA(vector<double> centroids, int t
 	vector<int> assignment;
 	HungarianAlgorithm HungAlg;
 	// auto centroids = getCentroids(file_name, timeRange, Dim);
-	//int howManyFramesinTree = 0;
+	// int howManyFramesinTree = 0;
 	// =================== Open data set and build tree
 	if (dataSetFile.is_open())
 	{
@@ -233,7 +269,7 @@ static std::shared_ptr<KDTree> GetKDtree_with_HA(vector<double> centroids, int t
 					kd_tree->insert(refined, FTagRegionInfo(refined));
 					stepcounter++;
 					// recordsCollection.push_back(hPoint);
-					// howManyFramesinTree++;					
+					// howManyFramesinTree++;
 				}
 				catch (kdtree::KeyDuplicateException* e) {} // KeyDuplicateException skip adding to tree
 				hPoint.clear();
@@ -247,6 +283,7 @@ static std::shared_ptr<KDTree> GetKDtree_with_HA(vector<double> centroids, int t
 }
 static std::shared_ptr<KDTree> GetKDtree(int timeRange = 75, std::string file_name = "", bool include_Ball = true)
 {
+	TaskTimer timer("GetKDtree()...");
 	// TODO: Refactor Dim calculation depend on include_Ball flag
 	int Dim = 46;
 	/*if(include_Ball)
@@ -342,6 +379,25 @@ inline std::pair<kdtree::vector_t, kdtree::vector_t> getTestQuery(kdtree::vector
 	{
 		lowBound.push_back(queryReference[i] - range);
 		upperBound.push_back(queryReference[i] + range);
+	}
+	return std::make_pair(lowBound, upperBound);
+}
+inline std::pair<kdtree::vector_t, kdtree::vector_t> getTestQuery_with_centroids(
+	kdtree::vector_t queryReference,
+	vector<double> centroids,
+	HungarianAlgorithm& hungAlg,
+	double range = 1)
+{
+	kdtree::vector_t lowBound;
+	kdtree::vector_t upperBound;
+	vector<int> assignment;
+	auto costMatrix = getDistanceMatrix(centroids, queryReference);
+	auto cost = hungAlg.Solve(costMatrix, assignment);
+	auto refined = refine_vector(queryReference, assignment);
+	for (auto i = 0; i < queryReference.size(); ++i) // size = 46
+	{
+		lowBound.push_back(refined[i] - range);
+		upperBound.push_back(refined[i] + range);
 	}
 	return std::make_pair(lowBound, upperBound);
 }
