@@ -8,20 +8,19 @@
 #include <math.h>
 #include <valarray>
 #include "Common Tools.h"
-#include "HA_SupportTools.h"
+// #include "HA_SupportTools.h"
 
 
 using namespace std;
 
 // Global variables
-// How many elements added into kd-tree
-// double searchRadius = 10;
-// double searchRange = 4;
 // How many dimensions
 int Dim = 46;
 int stepcounter = 0;
-KDTree kd_tree(Dim);
-KDTree testKDtree(Dim);
+
+
+// KDTree kd_tree(Dim);
+
 ifstream dataSetFile;
 ifstream queryReferenceFile;
 std::ofstream timeTable;
@@ -79,224 +78,66 @@ std::vector<kdtree::vector_t> referenceForSearch;
 // double rangeSet[] = { 6, 7, 8, 9 };
 int qualityThreshold = 10;
 double raduisSet[] = { 8, 9, 10, 11, 12, 13, 14 };
-double rangeSet[] = { 10, 12, 13, 14, 15, 16, 17, 18 };
+double rangeSet[] = { 1, 2, 3, 4, 5 };
 
-std::pair<kdtree::vector_t, kdtree::vector_t> getTestQuery(kdtree::vector_t queryReference, double range = 1)
-{
-	kdtree::vector_t lowBound;
-	kdtree::vector_t upperBound;
-	for (auto i = 0; i < queryReference.size(); ++i) // size = 46
-	{
-		lowBound.push_back(queryReference[i] - range);
-		upperBound.push_back(queryReference[i] + range);
-	}
-	return std::make_pair(lowBound, upperBound);
-}
-auto RecPath = R"(c:\Projects-Hg\RECS\)";
 std::vector<std::string> recs;
-void openBy20p(int timeRange = 75)
-{
-	for (auto recordNumber = 0; recordNumber < recs.size(); ++recordNumber)
-	{
-		// =================== Open data set and build tree		
-		int frame = 0;
-		dataSetFile.open(recs[recordNumber]);
-		if (dataSetFile.is_open())
-		{
-			std::cout << "data set file opened" << endl;
-			kdtree::vector_t hPoint;
-			hPoint.reserve(Dim);
-			// Scan data set file and put into kd tree
-			// 105000 = 70min
-			while (!dataSetFile.eof())
-			{
-				for (auto i = 0; i < Dim; ++i) {
-					double tempNumber = 0;
-					dataSetFile >> tempNumber;
-					hPoint.push_back(tempNumber);
-				}
-				frame++;
-				if (frame < 105000) {
-					if (frame % timeRange == 0)
-					{
-						try {
-							kd_tree.insert(hPoint, FTagRegionInfo(hPoint));
 
-							stepcounter++;
-							recordsCollection.push_back(hPoint);
-
-							if (stepcounter % 5000 == 0) {
-								processing = "processin tree " + std::to_string(stepcounter) + " of " + std::to_string(countOfLines);
-								std::cout << processing << endl;
-							}
-						}
-						catch (kdtree::KeyDuplicateException* e) {} // KeyDuplicateException skip adding to tree
-						hPoint.clear();
-					}
-				}
-				else {
-					if (frame % timeRange == 0)
-					{
-						referenceForSearch.push_back(hPoint);
-						if (frame % 5000 == 0) {
-							processing = "processing 2nd part. " + std::to_string(frame) + " of " + std::to_string(countOfLines);
-							std::cout << processing << endl;
-						}
-						hPoint.clear();
-					}
-				}
-				hPoint.clear();
-			}
-			// Hints for further upgrades (for input files with complex structure)
-			/*std::stringstream iss(tmp);
-			iss >> a;
-			boost::tokenizer*/
-		}
-		dataSetFile.close();
-	}
-
-}
-void openFileOneGame(int timeRange = 75)
-{
-	int frame = 0;
-	// =================== Open data set and build tree
-	if (dataSetFile.is_open())
-	{
-		std::cout << "data set file opened" << endl;
-		kdtree::vector_t hPoint;
-		hPoint.reserve(Dim);
-		// Scan data set file and put into kd tree
-		// 105000 = 70min
-		while (!dataSetFile.eof())
-		{
-			for (auto i = 0; i < Dim; ++i) {
-				double tempNumber = 0;
-				dataSetFile >> tempNumber;
-				hPoint.push_back(tempNumber);
-			}
-			frame++;
-			if (frame < 105000) {
-				if (frame % timeRange == 0)
-				{
-					try {
-						kd_tree.insert(hPoint, FTagRegionInfo(hPoint));
-
-						stepcounter++;
-						recordsCollection.push_back(hPoint);
-
-						if (stepcounter % 5000 == 0) {
-							processing = "processin tree " + std::to_string(stepcounter) + " of " + std::to_string(countOfLines);
-							std::cout << processing << endl;
-						}
-					}
-					catch (kdtree::KeyDuplicateException* e) {} // KeyDuplicateException skip adding to tree
-					hPoint.clear();
-				}
-			}
-			else {
-				if (frame % timeRange == 0)
-				{
-					referenceForSearch.push_back(hPoint);
-					if (frame % 5000 == 0) {
-						processing = "processing 2nd part. " + std::to_string(frame) + " of " + std::to_string(countOfLines);
-						std::cout << processing << endl;
-					}
-					hPoint.clear();
-				}
-			}
-			hPoint.clear();
-		}
-		// Hints for further upgrades (for input files with complex structure)
-		/*std::stringstream iss(tmp);
-		iss >> a;
-		boost::tokenizer*/
-	}
-	dataSetFile.close();
-}
-void openFileForSetOfGames(int timeRange = 75)
-{
-	int frame = 0;
-	//int howManyFramesinTree = 0;
-	// =================== Open data set and build tree
-	if (dataSetFile.is_open())
-	{
-		std::cout << "data set file opened" << endl;
-		kdtree::vector_t hPoint;
-		kdtree::vector_t framePoint;
-		hPoint.reserve(Dim);
-		framePoint.reserve(Dim + 1);
-		// Scan data set file and put into kd tree
-		// 105000 = 70min
-		std::string record;
-		while (std::getline(dataSetFile, record))
-		{
-			frame++;
-			if (frame % timeRange == 0)
-			{
-				std::istringstream currentRecord(record);
-				framePoint.push_back(frame);
-				for (auto i = 0; i < Dim; ++i) {
-					// if (i != 0 && i != 1)
-					// {
-						double tempNumber = 0;
-						currentRecord >> tempNumber;
-						hPoint.push_back(tempNumber);
-						framePoint.push_back(tempNumber);
-					// }
-				}
-				try {
-					// insert time
-					// auto startedInsert = std::chrono::high_resolution_clock::now();
-					kd_tree.insert(hPoint, FTagRegionInfo(framePoint));
-					// auto doneInsert = std::chrono::high_resolution_clock::now();
-					// auto elapsedTimeForInsert = std::chrono::duration_cast<std::chrono::microseconds>(doneInsert - startedInsert).count();
-					// std::cout << "Insert time: " << elapsedTimeForInsert << "ms" << endl;
-					stepcounter++;
-					recordsCollection.push_back(hPoint);
-					// howManyFramesinTree++;
-					/*if (stepcounter % 5000 == 0) {
-						processing = "processing tree " + std::to_string(stepcounter) + " of " + std::to_string(countOfLines);
-						std::cout << processing << endl;
-					}*/
-				}
-				catch (kdtree::KeyDuplicateException* e) {} // KeyDuplicateException skip adding to tree
-				hPoint.clear();
-				framePoint.clear();
-			}
-		}
-	}
-	dataSetFile.close();
-}
 std::vector<kdtree::vector_t> fillTestSet(std::string fileName);
-vector<vector<double>> initDataVector(int timeRange, std::string fileName);
-std::pair<kdtree::vector_t, kdtree::vector_t> getTestQueryWithGradient(kdtree::vector_t query_reference)
-{
-	kdtree::vector_t lowBound;
-	kdtree::vector_t upperBound;
-	double ballX = query_reference[0];
-	double ballY = query_reference[1];
-	lowBound.push_back(query_reference[0] - 2);
-	upperBound.push_back(query_reference[0] + 2);
-
-	lowBound.push_back(query_reference[1] - 2);
-	upperBound.push_back(query_reference[1] + 2);
-	for (auto i = 2; i < query_reference.size(); i += 2) // size = 46
-	{
-		double player_x = query_reference[i];
-		double player_y = query_reference[i + 1];
-		double distance = sqrt(pow(player_x - ballX, 2) + pow(player_y - ballY, 2));
-		// double dyn_range = pow(1.15, distance - 1);
-		double dyn_range = pow(1.15, distance + 1);
-		// std::cout << cubeRoot << " ";
-		lowBound.push_back(query_reference[i] - dyn_range);
-		upperBound.push_back(query_reference[i] + dyn_range);
-
-		lowBound.push_back(query_reference[i + 1] - dyn_range);
-		upperBound.push_back(query_reference[i + 1] + dyn_range);
-	}
-	// std::cout << " -------------------- " << std::endl;
-	return std::make_pair(lowBound, upperBound);
-}
+vector<vector<double>> initDataVector_v1(int timeRange, std::string fileName);
+//void openFileForSetOfGames(int timeRange = 75)
+//{
+//	int frame = 0;
+//	//int howManyFramesinTree = 0;
+//	// =================== Open data set and build tree
+//	if (dataSetFile.is_open())
+//	{
+//		std::cout << "data set file opened" << endl;
+//		kdtree::vector_t hPoint;
+//		kdtree::vector_t framePoint;
+//		hPoint.reserve(Dim);
+//		framePoint.reserve(Dim + 1);
+//		// Scan data set file and put into kd tree
+//		// 105000 = 70min
+//		std::string record;
+//		while (std::getline(dataSetFile, record))
+//		{
+//			frame++;
+//			if (frame % timeRange == 0)
+//			{
+//				std::istringstream currentRecord(record);
+//				framePoint.push_back(frame);
+//				for (auto i = 0; i < Dim; ++i) {
+//					// if (i != 0 && i != 1)
+//					// {
+//					double tempNumber = 0;
+//					currentRecord >> tempNumber;
+//					hPoint.push_back(tempNumber);
+//					framePoint.push_back(tempNumber);
+//					// }
+//				}
+//				try {
+//					// insert time
+//					// auto startedInsert = std::chrono::high_resolution_clock::now();
+//					kd_tree.insert(hPoint, FTagRegionInfo(framePoint));
+//					// auto doneInsert = std::chrono::high_resolution_clock::now();
+//					// auto elapsedTimeForInsert = std::chrono::duration_cast<std::chrono::microseconds>(doneInsert - startedInsert).count();
+//					// std::cout << "Insert time: " << elapsedTimeForInsert << "ms" << endl;
+//					stepcounter++;
+//					recordsCollection.push_back(hPoint);
+//					// howManyFramesinTree++;
+//					/*if (stepcounter % 5000 == 0) {
+//						processing = "processing tree " + std::to_string(stepcounter) + " of " + std::to_string(countOfLines);
+//						std::cout << processing << endl;
+//					}*/
+//				}
+//				catch (kdtree::KeyDuplicateException* e) {} // KeyDuplicateException skip adding to tree
+//				hPoint.clear();
+//				framePoint.clear();
+//			}
+//		}
+//	}
+//	dataSetFile.close();
+//}
 
 int main()
 {
@@ -307,11 +148,15 @@ int main()
 	timeTable.open("time-table.txt");
 	dataSetFile.open(dataSetFileName, ios::in);
 	const int frameRate = 25;
-
-	referenceForSearch = initDataVector(frameRate, testSetName); // fillTestSet(testSetName);
+	const bool include_ball = true;
+	// referenceForSearch = initDataVector_v1(frameRate, testSetName);
+	referenceForSearch = initDataVector(frameRate, testSetName, 46, include_ball);
 
 	auto startedBuilding = std::chrono::high_resolution_clock::now(); // TODO: Implement not so clumsy timer
-	openFileForSetOfGames(frameRate);
+
+	// openFileForSetOfGames(frameRate);
+	auto kd_tree = GetKDtree(frameRate, dataSetFileName, include_ball);
+	
 	auto doneBuilding = std::chrono::high_resolution_clock::now();
 	auto elapsedTimeForBuild = std::chrono::duration_cast<std::chrono::milliseconds>(doneBuilding - startedBuilding).count();
 
@@ -320,8 +165,8 @@ int main()
 	std::vector<pair<float, float>> rangeSuccess;
 	rangeSuccess.reserve(sizeof rangeSet / sizeof * rangeSet);
 
-	// for (auto radius = 0; radius < sizeof(raduisSet) / sizeof(*raduisSet); ++radius)
-	// {
+	for (auto radius = 0; radius < sizeof(raduisSet) / sizeof(*raduisSet); ++radius)
+	{
 		for (auto r2 = 0; r2 < sizeof(rangeSet) / sizeof(*rangeSet); ++r2)
 		{
 			int rescounter = 0;
@@ -338,13 +183,13 @@ int main()
 			for (auto i = 0; i < referenceForSearch.size(); ++i) {
 				// auto refEx = referenceForSearch[i];
 				// auto query = getTestQueryWithGradient(referenceForSearch[i]);
-				// auto query = getTestQueryAroundBall(referenceForSearch[i], raduisSet[radius], rangeSet[r2]);
-				auto query = getTestQuery(referenceForSearch[i], rangeSet[r2]);
+				auto query = getTestQueryAroundBall(referenceForSearch[i], raduisSet[radius], rangeSet[r2]);
+				// auto query = getTestQuery(referenceForSearch[i], rangeSet[r2]);
 
 				auto lowerKeys = query.first;
 				auto upperKeys = query.second;
 				// ========================== Perform query 			
-				auto result = kd_tree.range(lowerKeys, upperKeys); // range query
+				auto result = kd_tree->range(lowerKeys, upperKeys); // range query
 				if (result.size() != 0)
 				{
 					rescounter++;
@@ -441,7 +286,7 @@ int main()
 			// pair: Range : Success
 			// rangeSuccess.push_back(std::make_pair(rangeSet[r2], rescounter * 100.0 / referenceForSearch.size()));
 		} // end of Range FOR
-	// } // end of Radius FOR
+	} // end of Radius FOR
 	timeTable.close();
 	/*for (int i = 0; i < rangeSuccess.size(); ++i)
 	{
@@ -478,27 +323,6 @@ int main()
 	//		auto result = kd_tree.range(lowerKeys, upperKeys); // range query
 	//		auto doneSearch = std::chrono::high_resolution_clock::now();
 
-	//		testPoint.clear();
-	//		auto elapsedTimeForSearch = std::chrono::duration_cast<std::chrono::milliseconds>(doneSearch - startedSearch).count();
-	//		std::cout << "Search time: " << elapsedTimeForSearch << "ms" << endl;
-	//		timeTable << elapsedTimeForSearch << "," << endl;
-	//		std::cout << "Results:" << endl;
-	//		if (result.size() != 0)
-	//		{				
-	//			rescounter++;
-	//		}
-	//		
-	//		for (int i = 0; i < result.size(); i++)
-	//		{
-	//			for (auto j = 0; j < result[0].Tag.size(); ++j)
-	//			{
-	//				std::cout << result[i].Tag[j] << " ";
-	//			}
-	//			std::cout << endl;
-	//		}
-	//		
-	//	}
-	//}
 
 	// manual provided ref value
 	/*
@@ -565,7 +389,7 @@ std::vector<kdtree::vector_t> fillTestSet(const std::string file_name)
 	return testSetStructure;
 }
 
-std::vector<kdtree::vector_t> initDataVector(int timeRange = 75, std::string fileName = "")
+std::vector<kdtree::vector_t> initDataVector_v1(int timeRange = 75, std::string fileName = "")
 {
 	int frame = 0;
 	std::vector<kdtree::vector_t> result_vector;
@@ -600,16 +424,5 @@ std::vector<kdtree::vector_t> initDataVector(int timeRange = 75, std::string fil
 	recordFile.close();
 	return result_vector;
 }
-void drawVector(vector<double> v, std::string title)
-{
-	if (title != " ")
-	{
-		cout << title << endl;
-	}
-	for (int i = 0; i < v.size(); ++i)
-	{
-		cout << v[i] << " ";
-	}
-	cout << endl;
-}
+
 

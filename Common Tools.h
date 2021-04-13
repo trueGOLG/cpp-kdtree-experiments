@@ -5,6 +5,8 @@
 #include <vector>
 #include <algorithm>
 
+#include "HA_SupportTools.h"
+
 static std::vector<kdtree::vector_t> initDataVector(int timeRange = 75, std::string fileName = "", int Dim = 46, bool include_Ball = true)
 {
 	int frame = 0;
