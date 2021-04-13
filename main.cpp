@@ -27,11 +27,7 @@ ifstream queryReferenceFile;
 std::ofstream timeTable;
 
 std::vector<kdtree::vector_t> recordsCollection;
-bool isInsideCircle(double x1, double y1, double x2, double y2, double radius)
-{
-	bool result = sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2)) <= radius;
-	return result;
-}
+
 
 bool simple_correctness_checker(kdtree::vector_t result, vector<double> test_point, double range, double radius = 0)
 {
@@ -84,39 +80,6 @@ std::vector<kdtree::vector_t> referenceForSearch;
 int qualityThreshold = 10;
 double raduisSet[] = { 8, 9, 10, 11, 12, 13, 14 };
 double rangeSet[] = { 10, 12, 13, 14, 15, 16, 17, 18 };
-
-std::pair<kdtree::vector_t, kdtree::vector_t> getTestQueryAroundBall(kdtree::vector_t queryReference, double radius, double range = 1)
-{
-	kdtree::vector_t lowBound;
-	kdtree::vector_t upperBound;
-	double ballX = queryReference[0];
-	double ballY = queryReference[1];
-
-	for (auto i = 0; i < queryReference.size(); ++i) // size = 46
-	{
-		if (i % 2 == 0)
-		{
-			if (isInsideCircle(ballX, ballY, queryReference[i], queryReference[i + 1], radius))
-			{
-				// std::cout << "getTestQueryAroundBall i = " << i << std::endl;
-				lowBound.push_back(queryReference[i] - range);
-				upperBound.push_back(queryReference[i] + range);
-
-				lowBound.push_back(queryReference[i + 1] - range);
-				upperBound.push_back(queryReference[i + 1] + range);
-			}
-			else
-			{
-				lowBound.push_back(minR);
-				upperBound.push_back(maxR);
-
-				lowBound.push_back(minR);
-				upperBound.push_back(maxR);
-			}
-		}
-	}
-	return std::make_pair(lowBound, upperBound);
-}
 
 std::pair<kdtree::vector_t, kdtree::vector_t> getTestQuery(kdtree::vector_t queryReference, double range = 1)
 {
