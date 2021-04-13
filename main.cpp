@@ -78,7 +78,7 @@ std::vector<kdtree::vector_t> referenceForSearch;
 // double rangeSet[] = { 6, 7, 8, 9 };
 int qualityThreshold = 10;
 double raduisSet[] = { 8, 9, 10, 11, 12, 13, 14 };
-double rangeSet[] = { 1, 2, 3, 4, 15, 16 };
+double rangeSet[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
 
 std::vector<std::string> recs;
 
@@ -101,10 +101,9 @@ int main()
 	
 	// auto kd_tree = GetKDtree(frameRate, dataSetFileName, include_ball);
 	auto centroids = getCentroids(dataSetFileName, frameRate, Dim);
-	auto kd_tree = GetKDtree_with_HA(centroids, frameRate, Dim, dataSetFileName, include_ball);	
+	auto kd_tree = GetKDtree_with_HA(centroids, frameRate, Dim, dataSetFileName, include_ball);
 	HungarianAlgorithm HungAlg;
 	
-	std::cout << "There are " << stepcounter << " elements added into structure" << endl;
 	std::vector<pair<float, float>> rangeSuccess;
 	rangeSuccess.reserve(sizeof rangeSet / sizeof * rangeSet);
 

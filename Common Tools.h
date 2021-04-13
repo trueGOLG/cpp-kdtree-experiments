@@ -123,28 +123,31 @@ static vector<double> getCentroids(std::string filename, int frameRate, int Dim)
 	TaskTimer timer("generation centroids");
 	auto dataSet = initDataVector(frameRate, filename, Dim, false);
 	vector<double> result(dataSet[0].size());
-	/*
-	for (int i = 0; i < dataSet.size(); ++i)
+	
+	/*for (int i = 0; i < dataSet.size(); ++i)
 	{
 		for (int j = 0; j < result.size(); ++j)
 		{
 			result[j] += dataSet[i][j];
 		}
-	}
-	*/
-	for (int i = 0; i < dataSet.size(); ++i)
+	}*/
+	
+
+	for (int j = 0; j < result.size(); ++j)
 	{
-		for (int j = 0; j < result.size(); ++j)
+		for (int i = 0; i < dataSet.size(); ++i)
 		{
 			result[j] += dataSet[i][j];
 		}
 	}
+	
 	for (int i = 0; i < result.size(); ++i)
 	{
 		result[i] = result[i] / dataSet.size();
 	}
 	return result;
 }
+
 static vector<double> getCentroids(vector<vector<double>>& ds, int frameRate, int Dim)
 {
 
