@@ -1,7 +1,7 @@
 #pragma once
 #include "Hungarian.h"
 #include "kdtree.h"
-#include "Common Tools.h"
+// #include "Common Tools.h"
 #include <vector>
 #include <algorithm>
 
@@ -35,7 +35,7 @@ public:
 static std::vector<kdtree::vector_t> initDataVector(int timeRange = 75, std::string fileName = "", int Dim = 46, bool include_Ball = true)
 {
 	TaskTimer timer("initDataVector()...");
-	int frame = 0;	
+	int frame = 0;
 	std::vector<kdtree::vector_t> result_vector;
 	ifstream recordFile;
 	recordFile.open(fileName);
@@ -102,7 +102,7 @@ static std::vector<kdtree::vector_t> initDataVectorWithCentroids(vector<double> 
 					framePoint.pop_back(); framePoint.pop_back();
 				}
 				// -----------------------
-				auto distanceMatrix = getDistanceMatrix(centroids, framePoint);
+				auto distanceMatrix = getDistanceMatrix(centroids, framePoint, include_Ball);
 				auto cost = HungAlg.Solve(distanceMatrix, solution);
 				auto refVector = refine_vector(framePoint, solution);
 
@@ -123,7 +123,7 @@ static vector<double> getCentroids(std::string filename, int frameRate, int Dim)
 	TaskTimer timer("generation centroids");
 	auto dataSet = initDataVector(frameRate, filename, Dim, false);
 	vector<double> result(dataSet[0].size());
-	
+
 	/*for (int i = 0; i < dataSet.size(); ++i)
 	{
 		for (int j = 0; j < result.size(); ++j)
@@ -131,16 +131,16 @@ static vector<double> getCentroids(std::string filename, int frameRate, int Dim)
 			result[j] += dataSet[i][j];
 		}
 	}*/
-	
 
-	for (int j = 0; j < result.size(); ++j)
+
+	for (int i = 0; i < result.size(); ++i)
 	{
-		for (int i = 0; i < dataSet.size(); ++i)
+		for (int j = 0; j < dataSet.size(); ++j)
 		{
-			result[j] += dataSet[i][j];
+			result[i] += dataSet[j][i];
 		}
 	}
-	
+
 	for (int i = 0; i < result.size(); ++i)
 	{
 		result[i] = result[i] / dataSet.size();
@@ -156,24 +156,13 @@ static vector<double> getCentroids(vector<vector<double>>& ds, int frameRate, in
 	{
 		for (int j = 0; j < result.size(); ++j)
 		{
-			result[j] += ds[i][j];
-		}
-	}
-	for (int i = 0; i < result.size(); ++i)
-	{
-		result[i] = result[i] / ds.size();
-	}
-	/*for (int i = 0; i < result.size(); ++i)
-	{
-		for (int j = 0; j < ds.size(); ++j)
-		{
 			result[i] += ds[j][i];
 		}
 	}
 	for (int i = 0; i < result.size(); ++i)
 	{
 		result[i] = result[i] / ds.size();
-	}*/
+	}
 	return result;
 }
 
@@ -220,7 +209,7 @@ const double maxR = 30000;
 const double minR = -30000;
 
 static std::shared_ptr<KDTree> GetKDtree_with_HA(vector<double> centroids, int timeRange = 75, int Dim = 46, std::string file_name = "", bool include_Ball = true)
-{
+{	
 	TaskTimer timer("GetKDtree_with_HA()...");
 	std::shared_ptr<KDTree> kd_tree = std::make_shared<KDTree>(Dim);
 	ifstream dataSetFile;
@@ -228,7 +217,7 @@ static std::shared_ptr<KDTree> GetKDtree_with_HA(vector<double> centroids, int t
 	int frame = 0;
 	int stepcounter = 0;
 	vector<int> assignment;
-	HungarianAlgorithm HungAlg;
+	HungarianAlgorithm HungAlg;	
 	// auto centroids = getCentroids(file_name, timeRange, Dim);
 	// int howManyFramesinTree = 0;
 	// =================== Open data set and build tree
@@ -265,7 +254,7 @@ static std::shared_ptr<KDTree> GetKDtree_with_HA(vector<double> centroids, int t
 					// ----------------					
 				}
 				try {
-					auto costMatrix = getDistanceMatrix(centroids, hPoint);
+					auto costMatrix = getDistanceMatrix(centroids, hPoint, include_Ball);
 					auto cost = HungAlg.Solve(costMatrix, assignment);
 					auto refined = refine_vector(hPoint, assignment);
 					// kd_tree.insert(refined, FTagRegionInfo(framePoint));
@@ -380,11 +369,21 @@ inline std::pair<kdtree::vector_t, kdtree::vector_t> getTestQuery(kdtree::vector
 	kdtree::vector_t upperBound;
 	for (auto i = 0; i < queryReference.size(); ++i) // size = 46
 	{
-		lowBound.push_back(queryReference[i] - range);
-		upperBound.push_back(queryReference[i] + range);
+		if (i == 2 || i == 3)
+		{
+			lowBound.push_back(queryReference[i] - 30);
+			upperBound.push_back(queryReference[i] + 30);
+
+		}
+		else
+		{
+			lowBound.push_back(queryReference[i] - range);
+			upperBound.push_back(queryReference[i] + range);
+		}
 	}
 	return std::make_pair(lowBound, upperBound);
 }
+
 inline std::pair<kdtree::vector_t, kdtree::vector_t> getTestQuery_with_centroids(
 	kdtree::vector_t queryReference,
 	vector<double> centroids,
@@ -394,7 +393,7 @@ inline std::pair<kdtree::vector_t, kdtree::vector_t> getTestQuery_with_centroids
 	kdtree::vector_t lowBound;
 	kdtree::vector_t upperBound;
 	vector<int> assignment;
-	auto costMatrix = getDistanceMatrix(centroids, queryReference);
+	auto costMatrix = getDistanceMatrix(centroids, queryReference, true);
 	auto cost = hungAlg.Solve(costMatrix, assignment);
 	auto refined = refine_vector(queryReference, assignment);
 	for (auto i = 0; i < queryReference.size(); ++i) // size = 46
@@ -410,18 +409,21 @@ inline std::pair<kdtree::vector_t, kdtree::vector_t> getTestQueryWithGradient(kd
 	kdtree::vector_t upperBound;
 	double ballX = query_reference[0];
 	double ballY = query_reference[1];
-	lowBound.push_back(query_reference[0] - 2);
-	upperBound.push_back(query_reference[0] + 2);
+	double ballRange = 5;
+	
+	lowBound.push_back(query_reference[0] - ballRange);
+	upperBound.push_back(query_reference[0] + ballRange);
 
-	lowBound.push_back(query_reference[1] - 2);
-	upperBound.push_back(query_reference[1] + 2);
+	lowBound.push_back(query_reference[1] - ballRange);
+	upperBound.push_back(query_reference[1] + ballRange);
+	
 	for (auto i = 2; i < query_reference.size(); i += 2) // size = 46
 	{
 		double player_x = query_reference[i];
 		double player_y = query_reference[i + 1];
 		double distance = sqrt(pow(player_x - ballX, 2) + pow(player_y - ballY, 2));
 		// double dyn_range = pow(1.15, distance - 1);
-		double dyn_range = pow(1.15, distance + 1);
+		double dyn_range = pow(1.15, distance);
 		// std::cout << cubeRoot << " ";
 		lowBound.push_back(query_reference[i] - dyn_range);
 		upperBound.push_back(query_reference[i] + dyn_range);
@@ -499,7 +501,7 @@ static int getBestResult(vector<double> origin, vector<FTagRegionInfo> resultSet
 		{
 			auto x1 = origin[i];
 			auto y1 = origin[i + 1];
-						
+
 			auto x2 = resultSet[j].Tag[i];
 			auto y2 = resultSet[j].Tag[i + 1];
 

@@ -77,8 +77,12 @@ std::vector<kdtree::vector_t> referenceForSearch;
 
 // double rangeSet[] = { 6, 7, 8, 9 };
 int qualityThreshold = 10;
+
 double raduisSet[] = { 8, 9, 10, 11, 12, 13, 14 };
-double rangeSet[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
+
+// double rangeSet[] = { 1, 2, 3, 4, 5 };
+// long range set
+double rangeSet[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18 };
 
 std::vector<std::string> recs;
 
@@ -88,14 +92,37 @@ vector<vector<double>> initDataVector_v1(int timeRange, std::string fileName);
 
 int main()
 {
+	// Hung TEST
+	//
+	HungarianAlgorithm HungAlgorithm;
+	vector<vector<double>> cs = {
+		{ 3, 3, 2 },
+		{ 3, 2, 3 },
+		{ 2, 3, 3 }
+	};
+	vector<int> sol;
+	auto cent = HungAlgorithm.Solve(cs, sol);
+	vector<double> refTest = { 7, 8, 9 };
+	// auto t = refine_vector(refTest, sol);
+	// 2nd test
+	vector<double> test =   { 2, 2,   3, 8,  6, 4,  7, 5 };
+	vector<double> target = { 11, 6,  5, 4,  4, 8,  2, 3 };
+	auto distanceMatrix = getDistanceMatrixTest(target, test);
+	vector<int> sol2;
+	auto costResult = HungAlgorithm.Solve(distanceMatrix, sol2);
+	// =====
+	
 	bool radius_mode = false;
-	auto dataSetFileName = "d:\\Proccessed Soccer Recordings\\no actions\\Game2-3-4-5\\Game2-3-4-5.txt";
+	
+	auto dataSetFileName = "d:\\Proccessed Soccer Recordings\\no actions\\Game1-2-3-4\\Game1-2-3-4.txt";
 	// auto testSetName = "G1.txt"; //"stats_test_set.txt";
-	auto testSetName = "d:\\Proccessed Soccer Recordings\\no actions\\Game1\\game1.txt"; //"stats_test_set.txt";
+	std::string gameN = "5";
+	auto testSetName = "d:\\Proccessed Soccer Recordings\\no actions\\Game"+ gameN +"\\game"+ gameN +".txt"; //"stats_test_set.txt";
 	timeTable.open("time-table.txt");
-	dataSetFile.open(dataSetFileName, ios::in);
+	// dataSetFile.open(dataSetFileName, ios::in);
 	const int frameRate = 25;
 	const bool include_ball = true;
+	
 	// referenceForSearch = initDataVector_v1(frameRate, testSetName);
 	referenceForSearch = initDataVector(frameRate, testSetName, Dim, include_ball);
 	
@@ -127,19 +154,20 @@ int main()
 			for (auto i = 0; i < referenceForSearch.size(); ++i) {
 				// auto refEx = referenceForSearch[i];
 				pair<vector<double>, vector<double>> query;
-				// auto query = getTestQueryWithGradient(referenceForSearch[i]);
+				
 				if (radius_mode)
 				{
 					query = getTestQueryAroundBall(referenceForSearch[i], raduisSet[radius], rangeSet[r2]);
 				} else
 				{
 					// query = getTestQuery(referenceForSearch[i], rangeSet[r2]);
+					// query = getTestQueryWithGradient(referenceForSearch[i]);
 					query = getTestQuery_with_centroids(referenceForSearch[i], centroids, HungAlg, rangeSet[r2]);
 				}
 
 				auto lowerKeys = query.first;
 				auto upperKeys = query.second;
-				// ========================== Perform query 			
+				// ========================== Perform query
 				auto result = kd_tree->range(lowerKeys, upperKeys); // range query
 				if (result.size() != 0)
 				{
@@ -298,7 +326,7 @@ int main()
 	*/
 
 	// std::cout << "Test Search time: " << elapsedTimeForTestSearch << "ms" << endl;
-	std::cout << "Size of structure " << (sizeof(decltype(recordsCollection.back())) * recordsCollection.size()) / 1024 << "Kb" << endl;
+	// std::cout << "Size of structure " << (sizeof(decltype(recordsCollection.back())) * recordsCollection.size()) / 1024 << "Kb" << endl;
 
 	return 0;
 }

@@ -1,13 +1,33 @@
 #pragma once
 #include <vector>
 #include <iostream>
-// #include <sstream>
-// #include "Hungarian.h"
+#include <algorithm>
 
 using namespace std;
-static vector<vector<double>> getDistanceMatrix(vector<double> testRecord, vector<double> dataSetRecord)
+
+static void draw(vector<double> v, std::string title)
+{
+	if (title != " ")
+	{
+		cout << title << endl;
+	}
+	for (int i = 0; i < v.size(); ++i)
+	{
+		cout << v[i] << " ";
+	}
+	cout << endl;
+}
+
+static vector<vector<double>> getDistanceMatrix(vector<double> testRecord, vector<double> dataSetRecord, bool include_ball)
 {
 	auto resultSize = testRecord.size() / 2;
+	// remove ball from record
+	if (include_ball)
+	{
+		std::rotate(dataSetRecord.begin(), dataSetRecord.begin() + 2, dataSetRecord.end());
+		dataSetRecord.pop_back(); dataSetRecord.pop_back();
+	}
+	// -----
 	vector<vector<double>> result(resultSize);
 	for (auto& val : result)
 	{
@@ -33,16 +53,51 @@ static vector<vector<double>> getDistanceMatrix(vector<double> testRecord, vecto
 	}
 	return result;
 }
-
+static vector<vector<double>> getDistanceMatrixTest(vector<double> testRecord, vector<double> dataSetRecord)
+{
+	auto resultSize = testRecord.size() / 2;
+	vector<vector<double>> result(resultSize);
+	for (auto& val : result)
+	{
+		val.resize(resultSize);
+	}
+	for (int i = 0; i < resultSize; ++i)
+	{
+		for (int j = 0; j < resultSize; ++j)
+		{
+			auto x1 = testRecord[2 * i];
+			auto y1 = testRecord[2 * i + 1];
+			auto x2 = dataSetRecord[2 * j];
+			auto y2 = dataSetRecord[2 * j + 1];
+			result[i][j] = sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2));			
+		}
+	}
+	return result;
+}
+// TODO: provide solution with passing input_vector by reference 
 static vector<double> refine_vector(vector<double>& input_vector, vector<int>& solution)
 {
 	vector<double> refined(input_vector);
+	
+	// remove ball from record
+	std::rotate(refined.begin(), refined.begin() + 2, refined.end());
+	refined.pop_back(); refined.pop_back();
+	// -----
+	vector<double> result;
+	result.resize(refined.size());
+	/*vector<int> mutatedresult;
+	mutatedresult.resize(solution.size());
+	std::transform(solution.begin(), solution.end(), mutatedresult.begin(), [&](int a){
+		return a += 2;
+	});*/
 	for (int t = 0; t < solution.size(); ++t)
 	{
-		refined[t * 2] = input_vector[solution[t] * 2];
-		refined[t * 2 + 1] = input_vector[solution[t] * 2 + 1];
+		result[t * 2] = refined[solution[t] * 2];
+		result[t * 2 + 1] = refined[solution[t] * 2 + 1];
 	}
-	return refined;
+	result.insert(result.begin(), input_vector[1]);
+	result.insert(result.begin(), input_vector[0]);
+	return result;
 }
 //void algTask(std::string taskID, vector<vector<double>> querySet, vector<vector<double>> dataSetpart, int range)
 //{
